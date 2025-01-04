@@ -1,0 +1,16 @@
+# Use Python base image
+FROM python:3.9-slim
+
+# Install required packages
+RUN pip install kafka-python pandas requests
+
+# Set working directory
+WORKDIR /app
+
+# Copy application files
+COPY producer.py /app/producer.py
+COPY consumer.py /app/consumer.py
+COPY sentiment_analysis_dataset_ANG.csv /app/sentiment_analysis_dataset_ANG.csv
+
+# Default command
+CMD ["bash"]

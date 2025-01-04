@@ -1,0 +1,64 @@
+version: '3.8'
+
+services:
+  zookeeper:
+    image: confluentinc/cp-zookeeper:7.4.0
+    container_name: zookeeper
+    environment:
+      ZOOKEEPER_CLIENT_PORT: 2181
+    ports:
+      - "2181:2181"
+    healthcheck:
+      test: echo stat | nc localhost 2181
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  kafka:
+    image: confluentinc/cp-kafka:7.4.0
+    container_name: kafka
+    depends_on:
+      - zookeeper
+    environment:
+      KAFKA_BROKER_ID: 1
+      KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:9092
+      KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT
+      KAFKA_INTER_BROKER_LISTENER_NAME: PLAINTEXT
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+    ports:
+      - "9092:9092"
+    healthcheck:
+      test: ["CMD", "nc", "-z", "localhost", "9092"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+
+  flask_server:
+    build:
+      context: ./flask_server
+      dockerfile: Dockerfile
+    container_name: flask_server
+    ports:
+      - "5000:5000"
+    depends_on:
+      - kafka
+
+  consumer:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: consumer
+    depends_on:
+      - kafka
+    command: ["python", "/app/consumer.py"]
+
+  producer:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: producer
+    depends_on:
+      - kafka
+      - flask_server
+    command: ["python", "/app/producer.py"]
