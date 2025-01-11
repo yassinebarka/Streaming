@@ -53,7 +53,7 @@ services:
       - kafka
     command: ["python", "/app/consumer.py"]
 
-  producer:
+  producer:git 
     build:
       context: .
       dockerfile: Dockerfile

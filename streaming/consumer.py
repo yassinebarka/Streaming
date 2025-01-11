@@ -2,6 +2,8 @@ from kafka import KafkaConsumer
 from kafka.errors import KafkaError
 import json
 from time import sleep
+from collections import defaultdict
+from pprint import pprint
 
 def create_consumer(retries=5, retry_delay=5):
     """Create a Kafka consumer with retry logic"""
@@ -33,17 +35,50 @@ def map_sentiment_label(score):
 def main():
     print("Consuming messages from Kafka...")
     consumer = create_consumer()
+    
+    total_messages = 0
+    sentiment_counts = defaultdict(lambda: defaultdict(int))
+    country_counts = defaultdict(lambda: defaultdict(int))
+    platform_counts = defaultdict(lambda: defaultdict(int))
+    sex_counts = defaultdict(lambda: defaultdict(int))
+    
     try:
         for message in consumer:
             value = message.value
             sentiment_score = value.get('sentiment_score')
             sentiment_label = map_sentiment_label(sentiment_score)
             value['sentiment_score'] = sentiment_label
+            
+            country = value.get('country', 'Unknown')
+            platform = value.get('platform', 'Unknown')
+            sex = value.get('sex', 'Unknown')
+            
+            # Update statistics
+            total_messages += 1
+            sentiment_counts[sentiment_label]['total'] += 1
+            country_counts[country][sentiment_label] += 1
+            platform_counts[platform][sentiment_label] += 1
+            sex_counts[sex][sentiment_label] += 1
+            
             print(f"Received message from partition {message.partition}:")
             print(f"Offset: {message.offset}")
             print(f"Key: {message.key}")
-            print(f"Value: {value}")
+            print("Value:")
+            pprint(value)
             print("-" * 50)
+            
+            # Print statistics
+            print(f"Total messages: {total_messages}")
+            print("Sentiment counts:")
+            pprint(dict(sentiment_counts))
+            print("Country counts:")
+            pprint(dict(country_counts))
+            print("Platform counts:")
+            pprint(dict(platform_counts))
+            print("Sex counts:")
+            pprint(dict(sex_counts))
+            print("=" * 50)
+            
     except KeyboardInterrupt:
         print("Consumer interrupted by user")
     except Exception as e:
