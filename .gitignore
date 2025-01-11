@@ -4,3 +4,4 @@ sentiment_analysis_dataset_ANG.csv
 # Ignorer les fichiers de log
 *.log
 training.1600000.processed.noemoticon.csv
+.codegpt
