@@ -6,8 +6,12 @@ services:
     container_name: zookeeper
     environment:
       ZOOKEEPER_CLIENT_PORT: 2181
+    volumes:
+      - zookeeper_data:/var/lib/zookeeper
     ports:
       - "2181:2181"
+    dns:
+      - 8.8.8.8
     healthcheck:
       test: echo stat | nc localhost 2181
       interval: 30s
@@ -26,8 +30,12 @@ services:
       KAFKA_LISTENER_SECURITY_PROTOCOL_MAP: PLAINTEXT:PLAINTEXT
       KAFKA_INTER_BROKER_LISTENER_NAME: PLAINTEXT
       KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+    volumes:
+      - kafka_data:/var/lib/kafka
     ports:
       - "9092:9092"
+    dns:
+      - 8.8.8.8
     healthcheck:
       test: ["CMD", "nc", "-z", "localhost", "9092"]
       interval: 30s
@@ -43,6 +51,8 @@ services:
       - "5000:5000"
     depends_on:
       - kafka
+    dns:
+      - 8.8.8.8
 
   consumer:
     build:
@@ -52,6 +62,8 @@ services:
     depends_on:
       - kafka
     command: ["python", "/app/consumer.py"]
+    dns:
+      - 8.8.8.8
 
   producer:
     build:
@@ -62,3 +74,9 @@ services:
       - kafka
       - flask_server
     command: ["python", "/app/producer.py"]
+    dns:
+      - 8.8.8.8
+
+volumes:
+  zookeeper_data:
+  kafka_data:

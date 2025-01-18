@@ -12,5 +12,8 @@ COPY producer.py /app/producer.py
 COPY consumer.py /app/consumer.py
 COPY sentiment_analysis_dataset_ANG.csv /app/sentiment_analysis_dataset_ANG.csv
 
+# Verify that files are copied correctly
+RUN ls -l /app
+
 # Default command
 CMD ["bash"]

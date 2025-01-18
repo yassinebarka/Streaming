@@ -1,16 +1,23 @@
-# Utiliser l'image de base Python
-FROM python:3.9-slim
+# Use a base image that includes Java and Python
+FROM openjdk:11-jre-slim
 
-# Mettre à jour pip et installer les packages requis
-RUN pip install Flask torch tensorflow
+# Install Python and pip
+RUN apt-get update && apt-get install -y python3 python3-pip
 
-# Définir le répertoire de travail
+# Install required Python packages
+RUN pip3 install kafka-python pandas requests torch tensorflow keras pyspark flask scikit-fuzzy scipy
+
+# Set working directory
 WORKDIR /app
 
-# Copier les fichiers de l'application
-COPY flask_server.py /app/
-COPY gru_model.pth /app/
-COPY tokenizer.pkl /app/
+# Copy application files
+COPY . /app
 
-# Commande par défaut
-CMD ["python", "/app/flask_server.py"]
+# Verify that files are copied correctly
+RUN ls -l /app
+
+# List installed packages to verify installation
+RUN pip3 list
+
+# Default command
+CMD ["python3", "flask_server.py"]

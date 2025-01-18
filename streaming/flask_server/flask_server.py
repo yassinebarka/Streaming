@@ -1,10 +1,13 @@
 import torch
 from flask import Flask, request, jsonify
-
 import torch.nn as nn
 from tensorflow.keras.preprocessing.sequence import pad_sequences
 import pickle
 import re
+from pyspark.sql import SparkSession
+from pyspark.sql.functions import udf
+from pyspark.sql.types import StringType, IntegerType
+from fuzzy_logic import fuzzy_sentiment_analysis  # Importer la logique floue
 
 app = Flask(__name__)
 
@@ -27,7 +30,7 @@ vocab_size = 5000
 embed_dim = 128
 hidden_dim = 128
 output_dim = 3
-max_len = 100
+max_len = 10
 
 # Initialiser le modèle
 model = GRUNet(vocab_size, embed_dim, hidden_dim, output_dim, max_len)
@@ -58,6 +61,19 @@ def predict(model, tokenizer, texts, max_len):
 
     return predicted
 
+# Initialiser Spark
+spark = SparkSession.builder.appName("SentimentAnalysis").getOrCreate()
+
+# UDF pour nettoyer le texte
+clean_text_udf = udf(clean_text, StringType()) 
+
+# UDF pour prédire le sentiment
+def predict_udf(text):
+    sentiment_score = predict(model, tokenizer, [text], max_len).item()
+    return sentiment_score
+
+predict_udf = udf(predict_udf, IntegerType())
+
 @app.route('/analyze', methods=['POST'])
 def analyze():
     data = request.get_json()
@@ -65,8 +81,20 @@ def analyze():
     if not text:
         return jsonify({'error': 'No text provided'}), 400
     
-    sentiment_score = predict(model, tokenizer, [text], max_len).item()
-    return jsonify({'sentiment_score': sentiment_score})
+    # Créer un DataFrame Spark
+    df = spark.createDataFrame([(text,)], ["text"])
+    
+    # Nettoyer le texte et prédire le sentiment
+    df = df.withColumn("cleaned_text", clean_text_udf(df.text))
+    df = df.withColumn("sentiment_score", predict_udf(df.cleaned_text))
+    
+    # Récupérer le résultat
+    result = df.select("sentiment_score").collect()[0]["sentiment_score"]
+    
+    # Utiliser la logique floue pour obtenir le label de sentiment
+    fuzzy_label = fuzzy_sentiment_analysis(result)
+    
+    return jsonify({'sentiment_score': result, 'fuzzy_label': fuzzy_label})
 
 if __name__ == "__main__":
     app.run(host='0.0.0.0', port=5000)
