@@ -36,7 +36,7 @@ Ce projet implémente une application d'analyse de sentiments en flux continu. U
 
 ### 1. Cloner le dépôt
 ```bash
-git clone https://github.com/your-username/sentiment-analysis-kafka.git
+git clone 
 cd sentiment-analysis-kafka
 ```
 
